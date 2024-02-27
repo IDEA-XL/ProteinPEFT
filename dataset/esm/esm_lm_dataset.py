@@ -4,9 +4,9 @@ import copy
 import torch
 from transformers import EsmTokenizer
 
-from .data_interface import register_dataset
-from .lmdb_dataset import LMDBDataset
-from .utils import pad_sequences
+from ..data_interface import register_dataset
+from ..lmdb_dataset import LMDBDataset
+from ..utils import pad_sequences
 
 
 @register_dataset
@@ -39,7 +39,8 @@ class EsmLMDataset(LMDBDataset):
 	def __len__(self):
 		return int(self._get("length"))
 	
-	def __getitem__(self, index):
+	def __getitem__(self, index:int):
+		index = f"{index:09d}"
 		entry = json.loads(self._get(index))
 		seq = entry['seq'][:self.max_length]
 		# mask sequence for training
