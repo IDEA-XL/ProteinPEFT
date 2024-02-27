@@ -3,6 +3,8 @@ import torch
 import lmdb
 import pytorch_lightning as pl
 import copy
+from typing import Union
+import os
 
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -34,7 +36,7 @@ class LMDBDataset(pl.LightningDataModule):
         self.dataloader_kwargs = dataloader_kwargs if dataloader_kwargs is not None else {}
 
         self.env = None
-        self.operator = None
+        self.txn = None
     
     def is_initialized(self):
         return self.env is not None
@@ -44,23 +46,26 @@ class LMDBDataset(pl.LightningDataModule):
             self._close_lmdb()
             
         # open lmdb
-        self.env = lmdb.open(path, lock=False, map_size=_10TB)
-        self.operator = self.env.begin()
+        self.env = lmdb.open(
+            path, subdir=os.path.isdir(path), lock=False, readonly=False,
+            readahead=False, meminit=False, map_size=_10TB, max_readers=1,
+        )
+        self.txn = self.env.begin(write=False, buffers=True)
     
     def _close_lmdb(self):
         if self.env is not None:
             self.env.close()
             self.env = None
-            self.operator = None
+            self.txn = None
     
     def _cursor(self):
         return self.operator.cursor()
 
-    def _get(self, key: str or int):
-        value = self.operator.get(str(key).encode())
+    def _get(self, key: Union[str, int]):
+        value = self.txn.get(str(key).encode())
         
         if value is not None:
-            value = value.decode()
+            value = value.tobytes()
         
         return value
      
