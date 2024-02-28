@@ -13,7 +13,8 @@ class EsmLMModel(EsmBaseModel):
         super().__init__(task='lm', **kwargs)
     
     def initialize_metrics(self, stage):
-        return {f"{stage}_acc": torchmetrics.Accuracy(ignore_index=-1)}
+        return {f"{stage}_acc": torchmetrics.Accuracy(ignore_index=-1),
+                f"{stage}_ppl": torchmetrics.Perplexity(ignore_index=-1)}
     
     def forward(self, inputs, coords=None):
         if coords is not None:
@@ -39,11 +40,12 @@ class EsmLMModel(EsmBaseModel):
     
     def loss_func(self, stage, outputs, labels):
         logits = outputs['logits']
+        getattr(self, f"{stage}_ppl").update(logits.detach(), labels['labels'].to(logits.device))
         # merge the first and second dimension of logits
-        logits = logits.view(-1, logits.size(-1))
+        logits = logits.view(-1, logits.size(-1)) # (B*L, vocab_size)
         
         # flatten labels
-        labels = labels['labels'].flatten().to(logits.device)
+        labels = labels['labels'].flatten().to(logits.device) # (B,L) -> B*L
         
         loss = cross_entropy(logits, labels, ignore_index=-1)
         getattr(self, f"{stage}_acc").update(logits.detach(), labels)
