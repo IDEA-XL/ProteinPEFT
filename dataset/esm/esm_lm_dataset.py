@@ -52,14 +52,14 @@ class EsmLMDataset(LMDBDataset):
 	
 	def _apply_bert_mask(self, tokens):
 		masked_tokens = copy.copy(tokens)
-		labels = torch.full((len(tokens)+2,), -1, dtype=torch.long)
+		labels = torch.full((len(tokens)+2,), -1, dtype=torch.long) # <cls> SEQ <eos>, -1 for padding
 		for i in range(len(tokens)):
 			token = tokens[i]
 			
 			prob = random.random()
 			if prob < self.mask_ratio:
 				prob /= self.mask_ratio
-				labels[i+1] = self.tokenizer.convert_tokens_to_ids(token)
+				labels[i+1] = self.tokenizer.convert_tokens_to_ids(token) # i+1 for <cls> token at the beginning
 				
 				if prob < 0.8:
 					# 80% random change to mask token
