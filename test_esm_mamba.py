@@ -27,16 +27,16 @@ def pad_sequences(sequences, constant_value=0, dtype=None) -> np.ndarray:
 def trainable_parameters(model):
     print(f"Trainable parameters {sum(p.numel() for p in model.parameters() if p.requires_grad)/1e6:.2f} M")
 
-config = EsmMambaConfig.from_pretrained('config/pretrain/esm_mamba_35M.yaml')
+config = EsmMambaConfig.from_pretrained('config/model/esm_mamba_8M.yaml')
 model = EsmMambaForMaskedLM(config)
 # Print the number of trainable parameters
 trainable_parameters(model)
 
 
-esm_config = EsmConfig.from_pretrained('/cto_labs/AIDD/WEIGHTS/Protein/esm2_t12_35M_UR50D')
-esm_model = EsmForMaskedLM(esm_config)
-trainable_parameters(esm_model)
-breakpoint()
+# esm_config = EsmConfig.from_pretrained('/cto_labs/AIDD/WEIGHTS/Protein/esm2_t12_35M_UR50D')
+# esm_model = EsmForMaskedLM(esm_config)
+# trainable_parameters(esm_model)
+# breakpoint()
 
 # load tokenizer
 tokenizer = EsmTokenizer.from_pretrained('/cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D')

@@ -53,6 +53,12 @@ class EsmMambaLMModel(EsmMambaBaseModel):
         if stage == 'train':
             log_dict = self.get_log_dict("train")
             log_dict["train_loss"] = loss
+            # get model gradient norm
+            grad_norm = self.get_grad_norm()
+            log_dict["grad_norm"] = grad_norm
+            # get model weights norm
+            weights_norm = self.get_weights_norm()
+            log_dict["weights_norm"] = weights_norm
             self.log_info(log_dict)
             self.reset_metrics("train")
         
@@ -74,3 +80,17 @@ class EsmMambaLMModel(EsmMambaBaseModel):
         self.log_info(log_dict)
         self.reset_metrics("valid")
         self.check_save_condition(log_dict["valid_loss"], mode="min")
+        
+    def get_grad_norm(self):
+        norm = 0
+        for param in self.model.parameters():
+            if param.grad is not None:
+                norm += param.grad.norm(2).item() ** 2
+        return norm ** 0.5
+    
+    def get_weights_norm(self):
+        norm = 0
+        for param in self.model.parameters():
+            if param.grad is not None:
+                norm += param.norm(2).item() ** 2
+        return norm ** 0.5

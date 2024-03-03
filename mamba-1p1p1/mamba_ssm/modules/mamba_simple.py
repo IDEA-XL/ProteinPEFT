@@ -145,7 +145,19 @@ class Mamba(nn.Module):
         self.x_proj_b = nn.Linear(
             self.d_inner, self.dt_rank + self.d_state * 2, bias=False, **factory_kwargs
         )
+        
+        # same as initialize for 'dt_proj'
         self.dt_proj_b = nn.Linear(self.dt_rank, self.d_inner, bias=True, **factory_kwargs)
+        if dt_init == "constant":
+            nn.init.constant_(self.dt_proj_b.weight, dt_init_std)
+        elif dt_init == "random":
+            nn.init.uniform_(self.dt_proj_b.weight, -dt_init_std, dt_init_std)
+        else:
+            raise NotImplementedError
+        with torch.no_grad():
+            self.dt_proj_b.bias.copy_(inv_dt)
+        # Our initialization would set all Linear.bias to zero, need to mark this one as _no_reinit
+        self.dt_proj_b.bias._no_reinit = True
 
         self.D_b = nn.Parameter(torch.ones(self.d_inner, device=device))  # Keep in fp32
         self.D_b._no_weight_decay = True
