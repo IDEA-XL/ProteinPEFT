@@ -163,3 +163,4 @@ tmp/
 **/*.ipynb
 *.ipynb
 results/
+output/

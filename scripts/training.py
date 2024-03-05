@@ -10,6 +10,8 @@ from utils.others import setup_seed
 from utils.module_loader import *
 from utils.others import trainable_parameters
 
+import torch
+torch.autograd.set_detect_anomaly(True)
 
 def run(config):
     # Initialize a model
