@@ -3,6 +3,8 @@ from torch import nn
 import torch.nn.functional as F 
 from transformers.models.esm.modeling_esm import average_product_correct, symmetrize
 
+from pytorch_lightning.utilities import grad_norm
+
 from ..model_interface import register_model
 from .base import EsmBaseModel
 from ..metrics import ContactPredictMetric
@@ -22,6 +24,8 @@ class EsmContactBinaryPredictonHead(nn.Module):
         self.in_features = in_features
         self.eos_idx = eos_idx
         self.regression = nn.Linear(in_features, 1, bias)
+        nn.init.zeros_(self.regression.bias)
+        nn.init.kaiming_normal_(self.regression.weight, mode='fan_out', nonlinearity='relu')
 
     def forward(self, tokens, attentions):
         # remove eos token attentions
@@ -89,12 +93,15 @@ class EsmContactModel(EsmBaseModel):
         """
         super().__init__(task="contact", **kwargs)
         # If backbone is frozen, we only tune the contact head
-        self.model.esm.contact_head = EsmContactBinaryPredictonHead(
-            in_features=self.model.esm.config.num_hidden_layers * self.model.esm.config.num_attention_heads,
-            bias=True,
-            eos_idx=self.tokenizer.eos_token_id,
-        )
+        # self.model.esm.contact_head = EsmContactBinaryPredictonHead(
+        #     in_features=self.model.esm.config.num_hidden_layers * self.model.esm.config.num_attention_heads,
+        #     bias=True,
+        #     eos_idx=self.tokenizer.eos_token_id,
+        # )
         if self.freeze_backbone:
+            nn.init.zeros_(self.model.esm.contact_head.regression.bias)
+            nn.init.kaiming_normal_(self.model.esm.contact_head.regression.weight, mode='fan_out', nonlinearity='relu')
+
             for param in self.model.esm.contact_head.parameters():
                 param.requires_grad = True
         
@@ -114,10 +121,12 @@ class EsmContactModel(EsmBaseModel):
     def loss_func(self, stage, logits, labels):
         targets = labels["targets"]
         lengths = labels["lengths"]
-        loss = F.binary_cross_entropy_with_logits(logits, targets.float(), reduction="none")
+        loss = F.binary_cross_entropy(logits, targets.float(), reduction="none")
         mask = targets != -1
+        # all_linear1_params = torch.cat([x.view(-1) for x in self.model.esm.contact_head.regression.parameters()])
+        # l1_regularization = 1.5 * torch.norm(all_linear1_params, 1)
         loss = (loss * mask.float()).sum() / mask.sum()
-        
+
         # Update metrics
         for metric in self.metrics[stage].values():
             metric.update(logits.detach(), targets, lengths)
@@ -148,3 +157,15 @@ class EsmContactModel(EsmBaseModel):
         self.log_info(log_dict)
         self.reset_metrics("valid")
         self.check_save_condition(log_dict["valid_long_pl"], mode="max")
+
+    # def on_after_backward(self):
+    #     # Compute the 2-norm for each layer
+    #     # If using mixed precision, the gradients are already unscaled here
+    #     norms = grad_norm(self.model.esm.contact_head.regression, norm_type=2)
+    #     self.log_dict(norms)
+    #     breakpoint()
+
+    # def on_before_zero_grad(self, optimizer):
+    #     norms = grad_norm(self.model.esm.contact_head.regression, norm_type=2)
+    #     self.log_dict(norms)
+    #     breakpoint()

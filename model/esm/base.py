@@ -141,6 +141,8 @@ class EsmBaseModel(AbstractModel):
                 
             else:
                 self.model = EsmForMaskedLM(config)
+            # self.model.lm_head = None
+            # self.model.contact_head = None
 
         # Freeze the backbone of the model
         if self.freeze_backbone:

@@ -267,9 +267,11 @@ class AbstractModel(pl.LightningModule):
             {'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
              'weight_decay': 0.0}
         ]
+
+        # optimizer_grouped_parameters = self.model.esm.contact_head.parameters()
         
         self.optimizer = torch.optim.AdamW(optimizer_grouped_parameters,
-                                           lr=self.lr_scheduler_kwargs['init_lr'],
+                                           lr=1e-3,
                                            **self.optimizer_kwargs)
 
         self.lr_scheduler = Esm2LRScheduler(self.optimizer, **self.lr_scheduler_kwargs)
