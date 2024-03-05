@@ -3,8 +3,6 @@ from torch import nn
 import torch.nn.functional as F 
 from transformers.models.esm.modeling_esm import average_product_correct, symmetrize
 
-from pytorch_lightning.utilities import grad_norm
-
 from ..model_interface import register_model
 from .base import EsmBaseModel
 from ..metrics import ContactPredictMetric
@@ -47,43 +45,6 @@ class EsmContactBinaryPredictonHead(nn.Module):
         return self.regression(attentions).squeeze(3)
 
 
-# class EsmContactBinaryPredictonHead(nn.Module):
-#     """Performs symmetrization, apc, and computes a logistic regression on the output features
-#        Modified from TAPE https://github.com/songlab-cal/tape/blob/master/tape/models/modeling_utils.py#L843 
-#     """
-
-#     def __init__(
-#         self,
-#         in_features: int,
-#         bias=True,
-#         eos_idx: int = 2,
-#     ):
-#         super().__init__()
-#         self.in_features = in_features
-#         self.eos_idx = eos_idx
-#         self.predict = nn.Linear(in_features, 2, bias)
-
-#     def forward(self, tokens, attentions):
-#         # attentions: (B, layer*n_head, L+2, L+2)
-#         # remove eos token attentions
-#         eos_mask = tokens.ne(self.eos_idx).to(attentions)
-#         eos_mask = eos_mask.unsqueeze(1) * eos_mask.unsqueeze(2)
-#         attentions = attentions * eos_mask[:, None, None, :, :]
-#         attentions = attentions[..., :-1, :-1]
-#         # remove cls token attentions
-#         attentions = attentions[..., 1:, 1:]
-#         batch_size, layers, heads, seqlen, _ = attentions.size()
-#         attentions = attentions.view(batch_size, layers * heads, seqlen, seqlen)
-
-#         # features: batch x channels x tokens x tokens (symmetric)
-#         attentions = attentions.to(
-#             self.regression.weight.device
-#         )  # attentions always float32, may need to convert to float16
-#         attentions = average_product_correct(symmetrize(attentions))
-#         attentions = attentions.permute(0, 2, 3, 1)
-#         return self.regression(attentions) # (B, L, L, 2)
-
-
 @register_model
 class EsmContactModel(EsmBaseModel):
     def __init__(self, **kwargs):
@@ -92,12 +53,6 @@ class EsmContactModel(EsmBaseModel):
             **kwargs: other arguments for EsmBaseModel
         """
         super().__init__(task="contact", **kwargs)
-        # If backbone is frozen, we only tune the contact head
-        # self.model.esm.contact_head = EsmContactBinaryPredictonHead(
-        #     in_features=self.model.esm.config.num_hidden_layers * self.model.esm.config.num_attention_heads,
-        #     bias=True,
-        #     eos_idx=self.tokenizer.eos_token_id,
-        # )
         if self.freeze_backbone:
             nn.init.zeros_(self.model.esm.contact_head.regression.bias)
             nn.init.kaiming_normal_(self.model.esm.contact_head.regression.weight, mode='fan_out', nonlinearity='relu')
@@ -121,10 +76,9 @@ class EsmContactModel(EsmBaseModel):
     def loss_func(self, stage, logits, labels):
         targets = labels["targets"]
         lengths = labels["lengths"]
-        loss = F.binary_cross_entropy(logits, targets.float(), reduction="none")
         mask = targets != -1
-        # all_linear1_params = torch.cat([x.view(-1) for x in self.model.esm.contact_head.regression.parameters()])
-        # l1_regularization = 1.5 * torch.norm(all_linear1_params, 1)
+        targets_masked = targets * mask
+        loss = F.binary_cross_entropy(logits, targets_masked.float(), reduction="none")
         loss = (loss * mask.float()).sum() / mask.sum()
 
         # Update metrics
@@ -157,15 +111,3 @@ class EsmContactModel(EsmBaseModel):
         self.log_info(log_dict)
         self.reset_metrics("valid")
         self.check_save_condition(log_dict["valid_long_pl"], mode="max")
-
-    # def on_after_backward(self):
-    #     # Compute the 2-norm for each layer
-    #     # If using mixed precision, the gradients are already unscaled here
-    #     norms = grad_norm(self.model.esm.contact_head.regression, norm_type=2)
-    #     self.log_dict(norms)
-    #     breakpoint()
-
-    # def on_before_zero_grad(self, optimizer):
-    #     norms = grad_norm(self.model.esm.contact_head.regression, norm_type=2)
-    #     self.log_dict(norms)
-    #     breakpoint()

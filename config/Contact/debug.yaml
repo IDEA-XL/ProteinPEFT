@@ -17,7 +17,7 @@ model:
   model_py_path: esm/esm_contact_model
   kwargs:
 #    Arguments to initialize the specific class
-    config_path: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D
+    config_path: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t12_35M_UR50D
     load_pretrained: True
 #    Whether to freeze backbone
     freeze_backbone: True
@@ -25,7 +25,7 @@ model:
 #    Arguments to initialize the basic class AbstractModel
   lr_scheduler_kwargs:
     last_epoch: -1
-    init_lr: 1.0e-3
+    init_lr: 2.0e-3
 #    Weather to use this scheduler or not
     on_use: false
 
@@ -40,15 +40,15 @@ dataset:
 #    Arguments to initialize the basic class LMDBDataset
   dataset_py_path: esm/esm_contact_dataset
   dataloader_kwargs:
-    batch_size: 8
-    num_workers: 4
+    batch_size: 2
+    num_workers: 0
 
   train_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/train
   valid_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/valid
   test_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/test
 #    Arguments to initialize the specific class
   kwargs:
-    tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D
+    tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t12_35M_UR50D
 
 
 #  Arguments to initialize Pytorch Lightning Trainer
