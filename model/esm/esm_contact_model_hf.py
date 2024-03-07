@@ -4,7 +4,7 @@ import numpy as np
 import math
 
 from torch.nn import Linear, ReLU
-from torch.nn.functional import cross_entropy
+from torch.nn.functional import cross_entropy, linear
 from ..model_interface import register_model
 from .base import EsmBaseModel
 
@@ -18,25 +18,10 @@ class EsmContactModel(EsmBaseModel):
             **kwargs: other arguments for EsmBaseModel
         """
         super().__init__(task="base", **kwargs)
-
-    def initialize_model(self):
-        super().initialize_model()
-
-        # hidden_size = self.model.config.hidden_size * 2
-        hidden_size = self.model.config.num_attention_heads
-        # hidden_size = self.model.config.num_hidden_layers * self.model.config.num_attention_heads
-        
-        classifier = torch.nn.Sequential(
-            # Linear(hidden_size, hidden_size),
-            # ReLU(),
-            Linear(hidden_size, 2)
-        )
-        
-        # Freeze all parameters except classifier
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        setattr(self.model, "classifier", classifier)
+        if self.freeze_backbone:
+            # unfreeze the contact head
+            for param in self.model.esm.contact_head.parameters():
+                param.requires_grad = True
 
     def initialize_metrics(self, stage):
         metric_dict = {}
@@ -47,18 +32,14 @@ class EsmContactModel(EsmBaseModel):
         return metric_dict
 
     def forward(self, inputs):
-        inputs["output_attentions"] = True
-        outputs = self.model.esm(**inputs)
-        attention_maps = torch.cat(outputs["attentions"][-1:], 1).permute(0, 2, 3, 1)
-        attention_maps = (attention_maps + attention_maps.transpose(1, 2)) / 2
-        logits = self.model.classifier(attention_maps)
-        logits = logits[:, 1: -1, 1: -1].contiguous()
-        return logits
+        return self.model.predict_contacts(tokens=inputs["input_ids"], attention_mask=inputs["attention_mask"])
 
     def loss_func(self, stage, logits, labels):
         lengths = labels["lengths"]
         targets = labels["targets"].to(logits.device)
-        loss = cross_entropy(logits.view(-1, logits.size(-1)), targets.flatten(), ignore_index=-1)
+        targets_mask = targets != -1
+        loss = cross_entropy(logits.flatten(), (targets * targets_mask).flatten().float())
+        loss = loss * targets_mask.sum() / targets_mask.numel()
 
         # Iterate through all proteins and count accuracy
         length_dict = {"P@L": 1, "P@L/2": 2, "P@L/5": 5}
@@ -86,7 +67,8 @@ class EsmContactModel(EsmBaseModel):
                 preds = pred_map[selector].float()
                 labels = copy_label_map[selector]
 
-                probs = preds.softmax(dim=-1)[:, 1]
+                # probs = preds.softmax(dim=-1)[:, 1]
+                probs = preds
                 for k, v in length_dict.items():
                     l = min(math.ceil(L / v), (labels == 1).sum().item())
 

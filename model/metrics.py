@@ -20,6 +20,8 @@ class ContactPredictMetric(Metric):
             contact_result = compute_precision_at_lx(preds, target, src_lengths, min_sep=12, max_sep=24)
         elif self.range == "long":
             contact_result = compute_precision_at_lx(preds, target, src_lengths, min_sep=24)
+        elif self.range == "tape":
+            contact_result = compute_precision_at_lx(preds, target, src_lengths, min_sep=6)
         self.pL = contact_result
 
     def compute(self):
@@ -33,7 +35,8 @@ def compute_precision_at_lx(
     x:int=1, 
     _ignore_index=-1, 
     min_sep:int=6, 
-    max_sep:int=None
+    max_sep:int=None,
+    normalize_probs:bool=False
 ):
     with torch.no_grad():
         valid_mask = labels != _ignore_index
@@ -46,8 +49,10 @@ def compute_precision_at_lx(
         if prediction.dim() == 4:
             probs = F.softmax(prediction, 3)[:, :, :, 1]
         elif prediction.dim() == 3:
-            # probs = F.sigmoid(prediction)
-            probs = prediction
+            if normalize_probs:
+                probs = F.sigmoid(prediction)
+            else:
+                probs = prediction
         valid_mask = valid_mask.type_as(probs)
         correct = 0
         total = 0

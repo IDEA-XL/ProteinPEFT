@@ -25,7 +25,7 @@ model:
 #    Arguments to initialize the basic class AbstractModel
   lr_scheduler_kwargs:
     last_epoch: -1
-    init_lr: 2.0e-3
+    init_lr: 1.0e-2
 #    Weather to use this scheduler or not
     on_use: false
 
@@ -53,7 +53,7 @@ dataset:
 
 #  Arguments to initialize Pytorch Lightning Trainer
 Trainer:
-  max_epochs: 200
+  max_epochs: 30
   log_every_n_steps: 1
   strategy:
     find_unused_parameters: True
@@ -65,6 +65,6 @@ Trainer:
   devices: 8
   num_nodes: 1
   accumulate_grad_batches: 1
-  precision: 32
+  precision: 16
   num_sanity_val_steps: 0
 

@@ -134,13 +134,6 @@ class EsmBaseModel(AbstractModel):
 
             # Remove lm_head as it is not needed for PPI task
             self.model.lm_head = None
-            
-        elif self.task == 'contact':
-            if self.load_pretrained:
-                self.model = EsmForMaskedLM.from_pretrained(self.config_path, **self.extra_config)
-                
-            else:
-                self.model = EsmForMaskedLM(config)
 
         # Freeze the backbone of the model
         if self.freeze_backbone:
