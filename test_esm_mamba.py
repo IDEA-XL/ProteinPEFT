@@ -128,5 +128,8 @@ labels = cast_to_device(labels, device)
 
 # Forward
 with torch.no_grad():
-    outputs = model(**inputs, labels=labels)
+    outputs = model(**inputs, labels=labels, output_hidden_states=True)
     print(outputs.logits.shape) # [B, seqlen+1, vocab_size]
+    # if want to get hidden states
+    # outputs = model(**inputs, output_hidden_states=True, labels=labels)
+    # outputs.hidden_states # Tuple (B, seqlen+2, hidden_size) * # L

@@ -134,13 +134,16 @@ class EsmMambaBaseModel(AbstractModel):
         elif self.task == 'base':
             if self.load_pretrained:
                 self.model = EsmMambaForMaskedLM.from_pretrained(self.config_path, **self.extra_config)
-
             else:
                 self.model = EsmMambaForMaskedLM(config)
 
             # Remove lm_head as it is not needed for PPI task
             self.model.lm_head = None
 
+        # natively load pretrained weights
+        if config.pretrained_ckpt is not None:
+            self.model.load_state_dict(torch.load(config.pretrained_ckpt, map_location=self.device)['model'])
+        
         # Freeze the backbone of the model
         if self.freeze_backbone:
             for param in self.model.esm_mamba.parameters():

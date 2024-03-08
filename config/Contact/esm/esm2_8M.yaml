@@ -3,7 +3,7 @@ setting:
   os_environ:
     WANDB_API_KEY: ~
     WANDB_RUN_ID: ~
-    CUDA_VISIBLE_DEVICES: 0,1,2,3,4,5,6,7
+    CUDA_VISIBLE_DEVICES: 0,1,2,3
     MASTER_ADDR: localhost
     MASTER_PORT: 12315
     WORLD_SIZE: 1
@@ -40,8 +40,8 @@ dataset:
 #    Arguments to initialize the basic class LMDBDataset
   dataset_py_path: esm/esm_contact_dataset
   dataloader_kwargs:
-    batch_size: 8
-    num_workers: 4
+    batch_size: 4
+    num_workers: 2
 
   train_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/train
   valid_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/valid
@@ -62,7 +62,7 @@ Trainer:
   enable_checkpointing: false
   val_check_interval: 0.5
   accelerator: gpu
-  devices: 8
+  devices: 4
   num_nodes: 1
   accumulate_grad_batches: 1
   precision: 16
