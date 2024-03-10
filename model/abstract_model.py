@@ -6,6 +6,8 @@ import pytorch_lightning as pl
 from utils.lr_scheduler import Esm2LRScheduler
 from torch import distributed as dist
 
+from typing import List, Tuple, Union
+
 
 class AbstractModel(pl.LightningModule):
     def __init__(self,
@@ -14,7 +16,9 @@ class AbstractModel(pl.LightningModule):
                  save_path: str = None,
                  from_checkpoint: str = None,
                  load_prev_scheduler: bool = False,
-                 save_weights_only: bool = True,):
+                 save_weights_only: bool = True,
+                 save_condition: Union[str, List[str]] = None,
+                 ):
         """
 
         Args:
@@ -25,6 +29,7 @@ class AbstractModel(pl.LightningModule):
             load_prev_scheduler: Whether load previous scheduler from save_path
             load_strict: Whether load model strictly
             save_weights_only: Whether save only weights or also optimizer and lr_scheduler
+            save_condition: Save condition
             
         """
         super().__init__()
@@ -45,6 +50,7 @@ class AbstractModel(pl.LightningModule):
 
         self.save_path = save_path
         self.save_weights_only = save_weights_only
+        self.save_condition = save_condition
         
         self.step = 0
         self.epoch = 0
@@ -175,11 +181,12 @@ class AbstractModel(pl.LightningModule):
                 print(e)
                 raise KeyError("Wrong in loading previous scheduler, please set load_prev_scheduler=False")
 
-    def save_checkpoint(self, save_info: dict = None) -> None:
+    def save_checkpoint(self, save_info: dict = None, condition: str=None) -> None:
         """
         Save model to save_path
         Args:
             save_info: Other info to save
+            condition: Save condition
         """
         state_dict = {} if save_info is None else save_info
         state_dict["model"] = self.model.state_dict()
@@ -191,15 +198,23 @@ class AbstractModel(pl.LightningModule):
             state_dict["optimizer"] = self.optimizers().optimizer.state_dict()
             state_dict["lr_scheduler"] = self.lr_schedulers().state_dict()
 
-        torch.save(state_dict, self.save_path)
+        if condition is not None:
+            # modify the save path
+            state_dict["condition"] = condition
+            state_dict[f"best_value_{condition}"] = getattr(self, f"best_value_{condition}", None)
+            condition_save_path = self.save_path.replace(".pt", f"_{condition}.pt")
+            torch.save(state_dict, condition_save_path)
+        else:
+            torch.save(state_dict, self.save_path)
 
-    def check_save_condition(self, now_value: float, mode: str, save_info: dict = None) -> None:
+    def check_save_condition(self, now_value: float, mode: str, save_info: dict = None, condition: str = None) -> None:
         """
         Check whether to save model. If save_path is not None and now_value is the best, save model.
         Args:
             now_value: Current metric value
             mode: "min" or "max", meaning whether the lower the better or the higher the better
             save_info: Other info to save
+            condition: Save condition, e.g. "valid_loss", "valid_f1_max"
         """
 
         assert mode in ["min", "max"], "mode should be 'min' or 'max'"
@@ -208,17 +223,30 @@ class AbstractModel(pl.LightningModule):
             dir = os.path.dirname(self.save_path)
             os.makedirs(dir, exist_ok=True)
             
-            if dist.get_rank() == 0:
-                # save the best checkpoint
-                best_value = getattr(self, f"best_value", None)
-                if best_value:
-                    if mode == "min" and now_value < best_value or mode == "max" and now_value > best_value:
+            if condition is None:
+                if dist.get_rank() == 0:
+                    # save the best checkpoint
+                    best_value = getattr(self, f"best_value", None)
+                    if best_value:
+                        if mode == "min" and now_value < best_value or mode == "max" and now_value > best_value:
+                            setattr(self, "best_value", now_value)
+                            self.save_checkpoint(save_info)
+
+                    else:
                         setattr(self, "best_value", now_value)
                         self.save_checkpoint(save_info)
+            else:
+                if dist.get_rank() == 0:
+                    # save the best checkpoint
+                    best_value = getattr(self, f"best_value_{condition}", None)
+                    if best_value:
+                        if mode == "min" and now_value < best_value or mode == "max" and now_value > best_value:
+                            setattr(self, f"best_value_{condition}", now_value)
+                            self.save_checkpoint(save_info, condition=condition)
 
-                else:
-                    setattr(self, "best_value", now_value)
-                    self.save_checkpoint(save_info)
+                    else:
+                        setattr(self, f"best_value_{condition}", now_value)
+                        self.save_checkpoint(save_info, condition=condition)
     
     def reset_metrics(self, stage) -> None:
         """

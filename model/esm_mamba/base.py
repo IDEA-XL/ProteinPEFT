@@ -141,8 +141,15 @@ class EsmMambaBaseModel(AbstractModel):
             self.model.lm_head = None
 
         # natively load pretrained weights
-        if config.pretrained_ckpt is not None:
-            self.model.load_state_dict(torch.load(config.pretrained_ckpt, map_location=self.device)['model'])
+        if hasattr(config, "pretrained_ckpt") and config.pretrained_ckpt is not None:
+            missing_keys, unexpected_keys = self.model.load_state_dict(
+                torch.load(config.pretrained_ckpt, map_location=self.device)["model"], 
+                strict=False
+            )
+            if len(missing_keys) > 0:
+                print(f"Missing keys: {missing_keys}")
+            if len(unexpected_keys) > 0:
+                print(f"Unexpected keys: {unexpected_keys}")
         
         # Freeze the backbone of the model
         if self.freeze_backbone:
@@ -201,12 +208,12 @@ class EsmMambaBaseModel(AbstractModel):
     #     inputs["pair_feature"] = batch_coords2feature(coords, self.model.device)
     #     return inputs
 
-    def save_checkpoint(self, save_info: dict = None) -> None:
+    def save_checkpoint(self, save_info: dict = None, **kwargs) -> None:
         """
         Rewrite this function for saving LoRA parameters
         """
         if not self.use_lora:
-            return super().save_checkpoint(save_info)
+            return super().save_checkpoint(save_info, **kwargs)
 
         else:
             self.model.save_pretrained(self.save_path)

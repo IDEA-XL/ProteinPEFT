@@ -45,13 +45,13 @@ class EsmMambaContactModel(EsmMambaBaseModel):
         inputs["output_hidden_states"] = True
         if "attention_mask" in inputs:
             del inputs["attention_mask"]
-        # with torch.no_grad():
-        outputs = self.model.esm_mamba(**inputs)
-        feats = outputs.hidden_states[-1] # (B, L+2, D)
-        prod = feats.unsqueeze(2) * feats.unsqueeze(1)
-        diff = feats.unsqueeze(2) - feats.unsqueeze(1)
-        pairwise_features = torch.cat([prod, diff], dim=-1)
-        pairwise_features = pairwise_features[:, 1: -1, 1: -1].contiguous()
+        with torch.no_grad():
+            outputs = self.model.esm_mamba(**inputs)
+            feats = outputs.hidden_states[-1] # (B, L+2, D)
+            prod = feats.unsqueeze(2) * feats.unsqueeze(1)
+            diff = feats.unsqueeze(2) - feats.unsqueeze(1)
+            pairwise_features = torch.cat([prod, diff], dim=-1)
+            pairwise_features = pairwise_features[:, 1: -1, 1: -1].contiguous()
         logits = self.model.classifier(pairwise_features)
         return logits
 

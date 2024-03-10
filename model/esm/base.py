@@ -192,12 +192,12 @@ class EsmBaseModel(AbstractModel):
     #     inputs["pair_feature"] = batch_coords2feature(coords, self.model.device)
     #     return inputs
 
-    def save_checkpoint(self, save_info: dict = None) -> None:
+    def save_checkpoint(self, save_info: dict = None, **kwargs) -> None:
         """
         Rewrite this function for saving LoRA parameters
         """
         if not self.use_lora:
-            return super().save_checkpoint(save_info)
+            return super().save_checkpoint(save_info, **kwargs)
 
         else:
             self.model.save_pretrained(self.save_path)

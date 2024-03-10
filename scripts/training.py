@@ -27,17 +27,35 @@ def run(config):
     # Train and validate
     trainer.fit(model=model, datamodule=data_module)
 
-    # Load best model and test performance
-    if model.save_path is not None:
-        if config.model.kwargs.get("use_lora", False):
-            # Load LoRA model
-            config.model.kwargs.lora_config_path = model.save_path
-            model = load_model(config.model)
+    # Load best model and test performance along different saving conditions
+    if model.save_condition is None:
+        if model.save_path is not None:
+            if config.model.kwargs.get("use_lora", False):
+                # Load LoRA model
+                config.model.kwargs.lora_config_path = model.save_path
+                model = load_model(config.model)
 
-        else:
-            model.load_checkpoint(model.save_path, load_prev_scheduler=model.load_prev_scheduler)
+            else:
+                model.load_checkpoint(model.save_path, load_prev_scheduler=model.load_prev_scheduler)
 
-    trainer.test(model=model, datamodule=data_module)
+        trainer.test(model=model, datamodule=data_module)
+    else:
+        for condition in model.save_condition:
+            if model.save_path is not None:
+                # is-main process
+                if torch.distributed.get_rank() == 0:
+                    print(f"Loading model with condition {condition}...")
+                if config.model.kwargs.get("use_lora", False):
+                    raise NotImplementedError("LoRA is not implemented yet.")
+                    # Load LoRA model
+                    config.model.kwargs.lora_config_path = model.save_path
+                    model = load_model(config.model)
+
+                else:
+                    save_path = model.save_path.replace(".pt", f"_{condition}.pt")
+                    model.load_checkpoint(save_path, load_prev_scheduler=model.load_prev_scheduler)
+
+            trainer.test(model=model, datamodule=data_module)
 
 
 def get_args():

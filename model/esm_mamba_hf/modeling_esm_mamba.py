@@ -346,6 +346,7 @@ class EsmMambaEncoder(nn.Module):
     def forward(
         self,
         hidden_states,
+        attention_mask=None, # place holder
         inference_params=None,
         output_hidden_states=False,
         return_dict=True,
@@ -537,6 +538,7 @@ class EsmMambaModel(EsmMambaPreTrainedModel):
     def forward(
         self,
         input_ids: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None, # place holder
         position_ids: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.Tensor] = None,
         output_hidden_states: Optional[bool] = None,
@@ -624,7 +626,7 @@ class EsmMambaForMaskedLM(EsmMambaPreTrainedModel):
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
-        attention_mask: Optional[torch.LongTensor] = None,
+        attention_mask: Optional[torch.LongTensor] = None, # place holder
         position_ids: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         labels: Optional[torch.LongTensor] = None,
@@ -721,7 +723,7 @@ class EsmMambaForSequenceClassification(EsmMambaPreTrainedModel):
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None, # place holder
         position_ids: Optional[torch.LongTensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
@@ -742,9 +744,6 @@ class EsmMambaForSequenceClassification(EsmMambaPreTrainedModel):
             input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
@@ -815,7 +814,7 @@ class EsmMambaForTokenClassification(EsmMambaPreTrainedModel):
     def forward(
         self,
         input_ids: Optional[torch.LongTensor] = None,
-        attention_mask: Optional[torch.Tensor] = None,
+        attention_mask: Optional[torch.Tensor] = None, # place holder
         position_ids: Optional[torch.LongTensor] = None,
         head_mask: Optional[torch.Tensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
@@ -834,9 +833,7 @@ class EsmMambaForTokenClassification(EsmMambaPreTrainedModel):
             input_ids,
             attention_mask=attention_mask,
             position_ids=position_ids,
-            head_mask=head_mask,
             inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
