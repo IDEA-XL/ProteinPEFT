@@ -39,7 +39,7 @@ dataset:
 #    Arguments to initialize the basic class LMDBDataset
   dataset_py_path: esm/esm_classification_dataset
   dataloader_kwargs:
-    batch_size: 1
+    batch_size: 8
     num_workers: 8
 
   train_lmdb: /cto_labs/AIDD/DATA/SaProt/MetalIonBinding/AF2/normal/train
@@ -60,7 +60,7 @@ Trainer:
   enable_checkpointing: false
   val_check_interval: 0.5
   accelerator: gpu
-  devices: 1
+  devices: 4
   num_nodes: 1
   accumulate_grad_batches: 1
   precision: 16

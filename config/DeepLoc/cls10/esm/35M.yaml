@@ -9,7 +9,7 @@ setting:
     WORLD_SIZE: 1
     NODE_RANK: 0
   tensorboard:
-    log_dir: tmp/MetalIonBinding
+    log_dir: tmp/DeepLoc_cls10
     name: esm2_8M
 
 model:
@@ -17,9 +17,9 @@ model:
   model_py_path: esm/esm_classification_model
   kwargs:
 #    Arguments to initialize the specific class
-    config_path: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D
+    config_path: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t12_35M_UR50D
     load_pretrained: True
-    num_labels: 2
+    num_labels: 10
 
 #    Arguments to initialize the basic class AbstractModel
   lr_scheduler_kwargs:
@@ -42,9 +42,9 @@ dataset:
     batch_size: 8
     num_workers: 8
 
-  train_lmdb: /cto_labs/AIDD/DATA/SaProt/MetalIonBinding/AF2/normal/train
-  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/MetalIonBinding/AF2/normal/valid
-  test_lmdb: /cto_labs/AIDD/DATA/SaProt/MetalIonBinding/AF2/normal/test
+  train_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/train
+  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/valid
+  test_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/test
 #    Arguments to initialize the specific class
   kwargs:
     tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D
@@ -52,7 +52,7 @@ dataset:
 
 #  Arguments to initialize Pytorch Lightning Trainer
 Trainer:
-  max_epochs: 200
+  max_epochs: 100
   log_every_n_steps: 1
   strategy:
     find_unused_parameters: True
@@ -60,7 +60,7 @@ Trainer:
   enable_checkpointing: false
   val_check_interval: 0.5
   accelerator: gpu
-  devices: 8
+  devices: 4
   num_nodes: 1
   accumulate_grad_batches: 1
   precision: 16

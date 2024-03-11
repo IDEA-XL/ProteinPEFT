@@ -37,6 +37,7 @@ from transformers.utils import logging
 from .configuration_esm_mamba import EsmMambaConfig
 
 from mamba_ssm import Block as BiMambaBlock
+from mamba_ssm.modules.mamba_simple import UniMamba
 from mamba_ssm import Mamba
 from mamba_ssm.ops.triton.layernorm import RMSNorm
 
@@ -305,6 +306,7 @@ def create_block(
         ssm_cfg = {}
     factory_kwargs = {"device": device, "dtype": dtype}
     mixer_cls = partial(Mamba, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs)
+    # mixer_cls = partial(UniMamba, layer_idx=layer_idx, **ssm_cfg, **factory_kwargs)
     norm_cls = partial(
         nn.LayerNorm if not rms_norm else RMSNorm, eps=norm_epsilon, **factory_kwargs
     )

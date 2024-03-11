@@ -22,7 +22,7 @@ model:
 #    Whether to freeze backbone
     freeze_backbone: True
     extra_config:
-      pretrained_ckpt: results/Pretrain/esmm_8M_300K.pt
+      pretrained_ckpt: results/Pretrain/esmm_8M_632K.pt
 
 #    Arguments to initialize the basic class AbstractModel
   lr_scheduler_kwargs:
@@ -35,7 +35,7 @@ model:
     betas: [0.9, 0.98]
     weight_decay: 0.01
 
-  save_path: results/Contact/esmm/8M.pt
+  save_path: ~
 
 
 dataset:
