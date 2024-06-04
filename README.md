@@ -6,12 +6,6 @@
 
 The repository is an official implementation of [SaProt: Protein Language Modeling with Structure-aware Vocabulary](https://www.biorxiv.org/content/10.1101/2023.10.01.560349v2).
 
-If you have any question about the paper or the code, feel free to raise an issue! Saprot should outperform ESM-2 in most tasks under fair evaluation settings.
-
-> The laboratory is hiring research assistants, interns, doctoral students, and postdoctoral researchers. Please contact the corresponding author for details.
->
->实验室招聘科研助理，实习生，博士生和博士后，请联系通讯作者
-
 <details open><summary><b>Table of contents</b></summary>
 
 - [News](#News)
@@ -32,22 +26,6 @@ If you have any question about the paper or the code, feel free to raise an issu
 - [Evaluate zero-shot performance](#Evaluate-zero-shot-performance)
 - [Citation](#Citation)
 </details>
-
-## News
-- **2024/05/13**: SaProt ranked **#1st**  on the public ProteinGym benchmark in April2024, while other top-ranked models are  hybrid and mutation-specialized model.🎉🎉🎉! See [here](#proteingym-benchmark).
-- **2024/04/18**: We found a slight difference for EC and GO evaluation and updated the re-evaluated results (see [issue #23](https://github.com/westlake-repl/SaProt/issues/23) for details).
-- **2024/03/08**: We uploaded a simple function to make zero-shot prediction of mutational effect (see [example](#predict-mutational-effect)
-below).
-- **2024/01/17**: Our paper has been accepted as **ICLR 2024 spotlight** 🎉🎉🎉!
-- **2023/10/30**: We release a pre-trained [SaProt 35M model](https://huggingface.co/westlake-repl/SaProt_35M_AF2) and a [35M residue-sequence-only version of SaProt](https://huggingface.co/westlake-repl/SaProt_35M_AF2_seqOnly) (for comparison)! The residue-sequence-only SaProt (without 3Di token) performs highly similar to the official ESM-2 35M model. (see Results below).
-- **2023/10/30**: We released the results by using ESMFold structures. See Table below
-
-## Overview
-We propose a structure-aware vocabulary for protein language modeling. The vocabulary is constructed by encoding the 
-protein structure into discrete 3D tokens by using the [foldseek](https://github.com/steineggerlab/foldseek). We combine the residue tokens and the structure tokens to form a structure-aware sequence. 
-Through large-scale pre-training, our model, i.e. SaProt, can learn the relationship between the structure and the sequence.
-For more details, please refer to our paper https://www.biorxiv.org/content/10.1101/2023.10.01.560349v2.
-![](figures/pipeline.png)
 
 ## Environment installation
 ### Create a virtual environment
@@ -105,9 +83,6 @@ We compare structures predicted by AF2 or ESMFold, which is shown below:
 #### ProteinGym benchmark
 
 SaProt achieved first position on ProteinGym benchmark! The [checkpoint](https://huggingface.co/westlake-repl/SaProt_650M_AF2) was trained on Sep. 2023.
-![figures/proteingym.png](figures/proteingym.png)
-
-![figures/proteingymofficial.png](figures/proteingymofficial.png)
 
 ## Load SaProt
 
@@ -225,10 +200,22 @@ We provide the dataset for pre-training SaProt. The dataset can be downloaded fr
 ### Downstream tasks
 We provide datasets that are used in the paper. Datasets can be downloaded from 
 [here](https://drive.google.com/drive/folders/11dNGqPYfLE3M-Mbh4U7IQpuHxJpuRr4g?usp=sharing).
-
 Once downloaded, the datasets need to be decompressed and placed in the `LMDB` folder for supervised fine-tuning.
 
+> For ctolab, create a softlink as
+> ```bash
+> # make sure under the project directory
+> ln -s /cto_labs/AIDD/DATA/SaProt LMDB
+> ```
+
 ## Fine-tune SaProt
+```bash
+# in-short, all downstream tasks' config are listed under config/
+# for example, HumanPPI task's config is under config/HumanPPI/xxx.yaml
+# All you need to do is adjust the config file and run the following command
+python scripts/training.py -c config/$TASK/$MODEL.yaml # $TASK is the downstream task, $MODEL is the model name
+```
+
 We provide a script to fine-tune SaProt on the datasets. The following code shows how to fine-tune SaProt on specific
 downstream tasks. Before running the code, please make sure that the datasets are placed in the `LMDB` folder and the
 huggingface version of SaProt 650M model is placed in the `weights/PLMs` folder. **Note that the default training setting is not as 
@@ -263,15 +250,4 @@ For **ClinVar** benchmark, you can use the following script to calculate the AUC
 # Evaluate the zero-shot performance of SaProt on the ClinVar benchmark
 python scripts/mutation_zeroshot.py -c config/ClinVar/saprot.yaml
 python scripts/compute_clinvar_auc.py -c config/ClinVar/saprot.yaml
-```
-
-## Citation
-If you find this repository useful, please cite our paper:
-```
-@article{su2023saprot,
-  title={SaProt: Protein Language Modeling with Structure-aware Vocabulary},
-  author={Su, Jin and Han, Chenchen and Zhou, Yuyang and Shan, Junjie and Zhou, Xibin and Yuan, Fajie},
-  journal={bioRxiv},
-  year={2023},
-  publisher={Cold Spring Harbor Laboratory}
 ```
