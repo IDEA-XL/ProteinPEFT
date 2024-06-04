@@ -261,15 +261,22 @@ class AbstractModel(pl.LightningModule):
         else:
             weight_decay = 0.01
         
+        head_params = list(map(id, self.model.classifier.parameters()))
+        other_params = filter(lambda p: id(p) not in head_params, self.model.parameters()) 
+        
+        # optimizer_grouped_parameters = [
+        #     {'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+        #      'weight_decay': weight_decay},
+        #     {'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+        #      'weight_decay': 0.0}
+        # ]
+        
         optimizer_grouped_parameters = [
-            {'params': [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
-             'weight_decay': weight_decay},
-            {'params': [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
-             'weight_decay': 0.0}
+            {'params': self.model.classifier.parameters(), "lr":self.lr_scheduler_kwargs["head_lr"], "weight_decay": weight_decay}, 
+            {'params': other_params, "lr":self.lr_scheduler_kwargs["lora_lr"], "weight_decay": weight_decay},
         ]
         
         self.optimizer = torch.optim.AdamW(optimizer_grouped_parameters,
-                                           lr=self.lr_scheduler_kwargs['init_lr'],
                                            **self.optimizer_kwargs)
 
         self.lr_scheduler = Esm2LRScheduler(self.optimizer, **self.lr_scheduler_kwargs)

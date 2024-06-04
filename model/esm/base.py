@@ -23,6 +23,7 @@ class EsmBaseModel(AbstractModel):
                  freeze_backbone: bool = False,
                  use_lora: bool = False,
                  lora_config_path: str = None,
+                 lora_config: dict = None,
                  **kwargs):
         """
         Args:
@@ -54,9 +55,9 @@ class EsmBaseModel(AbstractModel):
         # After all initialization done, lora technique is applied if needed
         self.use_lora = use_lora
         if use_lora:
-            self._init_lora(lora_config_path)
+            self._init_lora(lora_config_path, lora_config)
 
-    def _init_lora(self, lora_config_path):
+    def _init_lora(self, lora_config_path, lora_config):
         from peft import (
             PeftModelForSequenceClassification,
             get_peft_model,
@@ -69,7 +70,16 @@ class EsmBaseModel(AbstractModel):
             self.model.merge_and_unload()
             print("LoRA model is initialized for inference.")
 
+        elif lora_config is not None:
+            peft_config = LoraConfig(**lora_config)
+            self.model = get_peft_model(self.model, peft_config)
+            # original_module is not needed for training
+            self.model.classifier.original_module = None
+            print("LoRA model is initialized for training.")
+            self.model.print_trainable_parameters()
+            
         else:
+            print("LoRA config is not provided. Default LoRA is not applied.")
             lora_config = {
                 "task_type": "SEQ_CLS",
                 "target_modules": ["query", "key", "value", "intermediate.dense", "output.dense"],
@@ -78,7 +88,6 @@ class EsmBaseModel(AbstractModel):
                 "lora_dropout": 0.1,
                 "lora_alpha": 8,
             }
-
             peft_config = LoraConfig(**lora_config)
             self.model = get_peft_model(self.model, peft_config)
             # original_module is not needed for training

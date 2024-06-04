@@ -1,0 +1,11 @@
+{
+    "base_model_name_or_path": "weights/PLMs/esm2_t33_650M_UR50D",
+    "task_type": "SEQ_CLS",
+    "target_modules": ["query", "key"],
+    "modules_to_save": ["classifier"],
+    "inference_mode": false,
+    "lora_dropout": 0.1,
+    "r": 8,
+    "lora_alpha": 8,
+    "peft_type": "LORA"
+}

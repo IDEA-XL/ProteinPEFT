@@ -20,6 +20,7 @@ class Esm2LRScheduler(torch.optim.lr_scheduler._LRScheduler):
                  start_decay_after_n_steps: int = 500000,
                  end_decay_after_n_steps: int = 5000000,
                  on_use: bool = True,
+                 **kwargs,
                  ):
         
         self.init_lr = init_lr

@@ -1,4 +1,5 @@
 import torchmetrics
+from torchmetrics import F1Score, Precision, Recall, MatthewsCorrCoef, AUROC
 import torch
 
 from torch.nn import Linear, ReLU
@@ -15,6 +16,7 @@ class EsmPPIModel(EsmBaseModel):
             **kwargs: other arguments for EsmBaseModel
         """
         super().__init__(task="base", **kwargs)
+        self.val_history = []
 
     def initialize_model(self):
         super().initialize_model()
@@ -29,7 +31,14 @@ class EsmPPIModel(EsmBaseModel):
         setattr(self.model, "classifier", classifier)
 
     def initialize_metrics(self, stage):
-        return {f"{stage}_acc": torchmetrics.Accuracy()}
+        return {
+            f"{stage}_acc": torchmetrics.Accuracy(), 
+            f"{stage}_f1": F1Score(num_classes=2),
+            f"{stage}_precision": torchmetrics.Precision(num_classes=2),
+            f"{stage}_recall": torchmetrics.Recall(num_classes=2),
+            f"{stage}_mcc": MatthewsCorrCoef(num_classes=2),
+            f"{stage}_auroc": AUROC(num_classes=2)
+        }
 
     def forward(self, inputs_1, inputs_2):
         if self.freeze_backbone:
@@ -73,6 +82,8 @@ class EsmPPIModel(EsmBaseModel):
         log_dict = self.get_log_dict("valid")
         log_dict["valid_loss"] = torch.cat(self.all_gather(outputs), dim=-1).mean()
 
+        print(log_dict)
+        self.val_history.append(log_dict["valid_acc"].item())
         self.log_info(log_dict)
         self.reset_metrics("valid")
         self.check_save_condition(log_dict["valid_acc"], mode="max")
