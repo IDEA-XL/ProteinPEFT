@@ -1,0 +1,27 @@
+{
+  "_name_or_path": "/tmp/facebook/esm2_t6_8M_UR50D",
+  "architectures": [
+    "EsmMambaForMaskedLM"
+  ],
+  "emb_layer_norm_before": false,
+  "esmfold_config": null,
+  "hidden_act": "gelu",
+  "hidden_dropout_prob": 0.0,
+  "hidden_size": 640,
+  "initializer_range": 0.02,
+  "is_folding_model": false,
+  "layer_norm_eps": 1e-05,
+  "mask_token_id": 32,
+  "max_position_embeddings": 1026,
+  "model_type": "esm",
+  "num_hidden_layers": 48,
+  "pad_token_id": 1,
+  "position_embedding_type": "rotary",
+  "token_dropout": false,
+  "torch_dtype": "float32",
+  "vocab_size": 33,
+  "rms_norm": true,
+  "residual_in_fp32": true,
+  "fused_add_norm": true,
+  "expand": 2
+}

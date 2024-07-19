@@ -38,7 +38,7 @@ model:
     betas: [0.9, 0.98]
     weight_decay: 0.01
 
-  from_checkpoint: results/esmm_8M.pt
+  from_checkpoint: results/Pretrain/esmm_8M_632K.pt
   save_path: results/esmm_8M.pt
   load_prev_scheduler: True
   save_weights_only: false
