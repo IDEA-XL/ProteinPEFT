@@ -1,40 +1,40 @@
-# Data
-
-UniRef50 63,849,054 
-
-* 99% len: 1468
-
-UniRef90 184,520,054
-
-## Preprocess
-
+# Example
+## HumanPPI
 ```bash
-# use mmseqs to deduplicate train from valid
-mmseqs createdb train.fasta DB/train
-mmseqs createdb valid.fasta DB/valid
-mmseqs createindex DB/valid tmp
-
-# use s=7 # ETC: 16 hours
-mmseqs search DB/train DB/valid DB/train_dup tmp --min-seq-id 0.5 --alignment-mode 3 -s 7 --max-seqs 300  -c 0.8 --cov-mode 0
-# use s=5.6 (default) # ETC: 4 hours
-mmseqs search DB/train DB/valid DB/train_dup tmp --min-seq-id 0.5 --alignment-mode 3 --max-seqs 300 -c 0.8 --cov-mode 0
-
-# 1. convert to m8 format
- mmseqs convertalis DB/train DB/valid DB/train_dup DB/train_dup.m8
-# 2. extract first column (means duplicated train samples)
-cut -f1 DB/train_dup.m8 > train_dup.id.txt
-sort train_dup.id.txt | uniq > train_dup1.id.txt
-rm train_dup.id.txt
-mv train_dup1.id.txt train_dup.id.txt
-# 3. deduplicate
-seqkit grep -v -f train_dup.id.txt train.fasta -o train_dedup.fasta
+bash training_scripts/HPPI.py
 ```
 
-After deduplication.
-| s             | # train      | # valid   | # train_dedup |
-|---------------|--------------|-----------|---------------|
-| default(5.6)  | 63,070,639   | 319,332   | 459,083       |
-| 7             | 63,067,918   | 319,332   | 461,804       |
+See the [training_scripts](training_scripts) directory for more examples. Take the [HPPI.sh](training_scripts/HPPI.sh) script as an example.
 
-# CodeBase
-SaProt https://github.com/westlake-repl/SaProt
+```bash
+#!/bin/bash
+NUM_GPUS=8
+# 650M: esm2_t33_650M_UR50D
+# 8M: esm2_t6_8M_UR50D
+accelerate launch --num_processes=$NUM_GPUS training_scripts/train_HumanPPI.py \
+    --model_name_or_path "/cto_labs/AIDD/WEIGHTS/Protein/esm2_t33_650M_UR50D" \
+    --peft_type "LORA" \
+    --task_type "SEQ_CLS" \
+    --lora_r 8 \
+    --lora_alpha 16 \
+    --lora_dropout 0.1 \
+    --target_modules "query,value" \
+    --data_config_path "dataset/config/HumanPPI.yaml" \ # just define the dataset class and  path etc.
+    --base_lr 5e-4 \
+    --classifier_lr_ratio 1 \ # classifier_lr = base_lr * classifier_lr_ratio
+    --beta1 0.9 --beta2 0.98 --wdecay 0.01 \
+    --optim_warmup_ratio 0.06 \
+    --per_device_train_batch_size 2 \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps 4 \
+    --dataloader_num_workers 8 \
+    --fp16 True \
+    --num_train_epochs 2 \
+    --evaluation_strategy "epoch" \ # evaluate every epoch
+    --save_strategy "epoch" \
+    --save_total_limit 3 \
+    --load_best_model_at_end True \
+    --logging_steps 10 \
+    --report_to "none" \
+    --output_dir "output/HumanPPI" # change to your own output directory
+```
