@@ -5,7 +5,6 @@ import datetime
 
 import wandb
 from pytorch_lightning.loggers import TensorBoardLogger
-from model.model_interface import ModelInterface
 from dataset.data_interface import DataInterface
 from pytorch_lightning.strategies import DDPStrategy
 
@@ -17,12 +16,12 @@ def load_tensorboard(config):
     return tensorboard_logger
 
 
-def load_model(config):
-    # initialize model
-    model_config = copy.deepcopy(config)
-    kwargs = model_config.pop('kwargs')
-    model_config.update(kwargs)
-    return ModelInterface.init_model(**model_config)
+# def load_model(config):
+#     # initialize model
+#     model_config = copy.deepcopy(config)
+#     kwargs = model_config.pop('kwargs')
+#     model_config.update(kwargs)
+#     return ModelInterface.init_model(**model_config)
 
 
 def load_dataset(config):
