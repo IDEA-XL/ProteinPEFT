@@ -54,6 +54,10 @@ class ModelArguments:
         default="q_proj,k_proj,v_proj,o_proj,down_proj,up_proj,gate_proj",
         metadata={"help": "comma separated list of target modules to apply LoRA layers to"},
     )
+    freeze_backbone: bool = field(
+        metadata={"help": "Whether to freeze the backbone model"},
+        default=False,
+    )
     
 @dataclass
 class DataArguments:
@@ -163,11 +167,20 @@ if __name__ == "__main__":
         nn.Linear(hidden_size, 2),
     )
     setattr(model, "classifier", classifier)
+    if model_args.freeze_backbone:
+        for param in model.esm.parameters():
+            param.requires_grad = False
+        model.esm.eval()
 
     # change model forward method to support dual inputs
     def ppi_forward(self, inputs_1, inputs_2, labels, **kwargs):
-        hidden_1 = self.esm(**inputs_1)[0][:, 0, :]
-        hidden_2 = self.esm(**inputs_2)[0][:, 0, :]
+        if model_args.freeze_backbone:
+            with torch.no_grad():
+                hidden_1 = self.esm(**inputs_1)[0][:, 0, :]
+                hidden_2 = self.esm(**inputs_2)[0][:, 0, :]
+        else:
+            hidden_1 = self.esm(**inputs_1)[0][:, 0, :]
+            hidden_2 = self.esm(**inputs_2)[0][:, 0, :]
         hidden_concat = torch.cat([hidden_1, hidden_2], dim=-1)
         logits = self.classifier(hidden_concat)
         loss_fct = nn.CrossEntropyLoss()
@@ -179,17 +192,19 @@ if __name__ == "__main__":
 
     setattr(model, "forward", ppi_forward.__get__(model))
 
-    # init lora
-    peft_config = LoraConfig(
-        task_type=model_args.task_type,
-        inference_mode=False,
-        r=model_args.lora_r,
-        lora_alpha=model_args.lora_alpha,
-        lora_dropout=model_args.lora_dropout,
-        target_modules=model_args.target_modules.split(","),
-    )
-    model = get_peft_model(model, peft_config=peft_config)
+    if not model_args.freeze_backbone:
+        # init lora
+        peft_config = LoraConfig(
+            task_type=model_args.task_type,
+            inference_mode=False,
+            r=model_args.lora_r,
+            lora_alpha=model_args.lora_alpha,
+            lora_dropout=model_args.lora_dropout,
+            target_modules=model_args.target_modules.split(","),
+        )
+        model = get_peft_model(model, peft_config=peft_config)
     print_trainable_parameters(model)
+        
 
     # init custom optimizer for different groups of parameters
     base_lr = optim_args.base_lr
@@ -198,11 +213,17 @@ if __name__ == "__main__":
     beta2 = optim_args.beta2
     weight_decay = optim_args.wdecay
     warmup_ratio = optim_args.optim_warmup_ratio
-    optimizer = AdamW(
-        [
-            {"params": model.esm.parameters(), "lr": base_lr},
+    if model_args.freeze_backbone:
+        group_params = [
+            {"params": model.classifier.parameters(), "lr": base_lr},
+        ]
+    else:
+        group_params = [
             {"params": model.classifier.parameters(), "lr": base_lr * classifier_lr_ratio},
-        ],
+            {"params": model.esm.parameters(), "lr": base_lr},
+        ]
+    optimizer = AdamW(
+        group_params,
         lr=base_lr,
         betas=(beta1, beta2),
         weight_decay=weight_decay,
