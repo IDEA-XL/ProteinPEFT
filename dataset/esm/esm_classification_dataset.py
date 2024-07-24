@@ -86,11 +86,10 @@ class EsmClassificationDataset(LMDBDataset):
         return int(self._get("length"))
 
     def collate_fn(self, batch):
-        seqs, label_ids, coords = tuple(zip(*batch))
+        seqs, labels, coords = tuple(zip(*batch))
 
-        label_ids = torch.tensor(label_ids, dtype=torch.long)
-        labels = {"labels": label_ids}
-    
+        labels = torch.tensor(labels, dtype=torch.long)
+
         encoder_info = self.tokenizer.batch_encode_plus(seqs, return_tensors='pt', padding=True)
         inputs = {"inputs": encoder_info}
         if self.use_bias_feature:

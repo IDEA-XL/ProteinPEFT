@@ -1,5 +1,6 @@
 import torch
 import json
+import pickle
 
 from ..lmdb_dataset import LMDBDataset
 from transformers import EsmConfig, EsmTokenizer
@@ -67,6 +68,108 @@ class EsmPPIDataset(LMDBDataset):
 
         label_ids = torch.tensor(label_ids, dtype=torch.long)
         labels = {"labels": label_ids}
+
+        encoder_info_1 = self.tokenizer.batch_encode_plus(seqs_1, return_tensors='pt', padding=True)
+        encoder_info_2 = self.tokenizer.batch_encode_plus(seqs_2, return_tensors='pt', padding=True)
+        inputs = {"inputs_1": encoder_info_1,
+                  "inputs_2": encoder_info_2}
+
+        return inputs, labels
+    
+
+@register_dataset
+class YeastPPIDataset(LMDBDataset):
+    def __init__(self,
+             tokenizer: str,
+             max_length: int = 1024,
+             plddt_threshold: float = None,
+             **kwargs):
+        """
+        Args:
+            tokenizer: Path to tokenizer
+            
+            max_length: Max length of sequence
+            
+            plddt_threshold: If not None, mask structure tokens with pLDDT < threshold
+            
+            **kwargs:
+        """
+        super().__init__(**kwargs)
+        self.tokenizer = EsmTokenizer.from_pretrained(tokenizer)
+        self.max_length = max_length
+        self.plddt_threshold = plddt_threshold
+
+    def __getitem__(self, index):
+        entry = pickle.loads(self._get(index))
+        seq_1, seq_2 = entry['primary_1'], entry['primary_2']
+                    
+        tokens = self.tokenizer.tokenize(seq_1)[:self.max_length]
+        seq_1 = " ".join(tokens)
+
+        tokens = self.tokenizer.tokenize(seq_2)[:self.max_length]
+        seq_2 = " ".join(tokens)
+        
+        return seq_1, seq_2, int(entry["interaction"])
+
+    def __len__(self):
+        return int(pickle.loads(self._get("num_examples")))
+
+    def collate_fn(self, batch):
+        seqs_1, seqs_2, label_ids = tuple(zip(*batch))
+
+        label_ids = torch.tensor(label_ids, dtype=torch.long)
+        labels = {"labels": label_ids}
+
+        encoder_info_1 = self.tokenizer.batch_encode_plus(seqs_1, return_tensors='pt', padding=True)
+        encoder_info_2 = self.tokenizer.batch_encode_plus(seqs_2, return_tensors='pt', padding=True)
+        inputs = {"inputs_1": encoder_info_1,
+                  "inputs_2": encoder_info_2}
+
+        return inputs, labels
+    
+    
+@register_dataset
+class PPIAffinityDataset(LMDBDataset):
+    def __init__(self,
+             tokenizer: str,
+             max_length: int = 1024,
+             plddt_threshold: float = None,
+             **kwargs):
+        """
+        Args:
+            tokenizer: Path to tokenizer
+            
+            max_length: Max length of sequence
+            
+            plddt_threshold: If not None, mask structure tokens with pLDDT < threshold
+            
+            **kwargs:
+        """
+        super().__init__(**kwargs)
+        self.tokenizer = EsmTokenizer.from_pretrained(tokenizer)
+        self.max_length = max_length
+        self.plddt_threshold = plddt_threshold
+
+    def __getitem__(self, index):
+        entry = pickle.loads(self._get(index))
+        seq_1, seq_2 = entry['primary_1'], entry['primary_2']
+                    
+        tokens = self.tokenizer.tokenize(seq_1)[:self.max_length]
+        seq_1 = " ".join(tokens)
+
+        tokens = self.tokenizer.tokenize(seq_2)[:self.max_length]
+        seq_2 = " ".join(tokens)
+        
+        return seq_1, seq_2, float(entry["interaction"])
+
+    def __len__(self):
+        return int(pickle.loads(self._get("num_examples")))
+
+    def collate_fn(self, batch):
+        seqs_1, seqs_2, label_ids = tuple(zip(*batch))
+
+        labels = torch.tensor(label_ids, dtype=torch.float32)
+        labels = {"labels": labels}
 
         encoder_info_1 = self.tokenizer.batch_encode_plus(seqs_1, return_tensors='pt', padding=True)
         encoder_info_2 = self.tokenizer.batch_encode_plus(seqs_2, return_tensors='pt', padding=True)

@@ -1,0 +1,13 @@
+dataset:
+#    Arguments to initialize the basic class LMDBDataset
+  dataset_py_path: esm/esm_classification_dataset/EsmClassificationDataset
+  dataloader_kwargs:
+    batch_size: 8
+    num_workers: 8
+
+  train_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/train
+  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/valid
+  test_lmdb: /cto_labs/AIDD/DATA/SaProt/DeepLoc/cls10/normal/test
+#    Arguments to initialize the specific class
+  kwargs:
+    tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D

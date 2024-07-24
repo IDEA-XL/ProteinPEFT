@@ -1,0 +1,13 @@
+dataset:
+#    Arguments to initialize the basic class LMDBDataset
+  dataset_py_path: esm/esm_contact_dataset/EsmContactDataset
+  dataloader_kwargs:
+    batch_size: 4
+    num_workers: 2
+
+  train_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/train
+  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/valid
+  test_lmdb: /cto_labs/AIDD/DATA/SaProt/proteinnet/test
+#    Arguments to initialize the specific class
+  kwargs:
+    tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D

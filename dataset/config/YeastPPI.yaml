@@ -1,13 +1,13 @@
 dataset:
 #    Arguments to initialize the basic class LMDBDataset
-  dataset_py_path: esm/esm_ppi_dataset/EsmPPIDataset
+  dataset_py_path: esm/esm_ppi_dataset/YeastPPIDataset
   dataloader_kwargs: # deprecated, initalized through training args
     batch_size: 8
     num_workers: 8
 
-  train_lmdb: /cto_labs/AIDD/DATA/SaProt/HumanPPI/normal/train
-  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/HumanPPI/normal/valid
-  test_lmdb: /cto_labs/AIDD/DATA/SaProt/HumanPPI/normal/test
+  train_lmdb: /cto_labs/AIDD/DATA/SaProt/YeastPPI/yeast_ppi_train.lmdb
+  valid_lmdb: /cto_labs/AIDD/DATA/SaProt/YeastPPI/yeast_ppi_valid.lmdb
+  test_lmdb: /cto_labs/AIDD/DATA/SaProt/YeastPPI/yeast_ppi_test.lmdb
 #    Arguments to initialize the specific class
   kwargs:
     tokenizer: /cto_labs/AIDD/WEIGHTS/Protein/esm2_t6_8M_UR50D

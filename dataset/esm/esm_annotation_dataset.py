@@ -84,11 +84,10 @@ class EsmAnnotationDataset(LMDBDataset):
 
         model_inputs = self.tokenizer.batch_encode_plus(seqs, return_tensors='pt', padding=True)
         inputs = {"inputs": model_inputs}
+        labels = torch.tensor(labels, dtype=torch.long)
         # print(self.tokenizer.convert_ids_to_tokens(inputs['inputs']['input_ids'][0]))
         if self.bias_feature:
             inputs['structure_info'] = (coords,)
-
-        labels = {"labels": torch.tensor(labels, dtype=torch.long)}
         
         return inputs, labels
     
